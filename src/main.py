@@ -3,10 +3,10 @@ Pipeline.
 
 This is the ONE place in the package where every singleton object gets
 constructed: Config, StructuredMemory, SemanticMemory, EmbeddingProvider,
-MemoryRepository, and — for now — a temporary mock-only LLM client
-stand-in. No other module in src/ instantiates any of these (Stage E4/E5/E6
-decisions) — every one of them takes these objects as explicit constructor
-or function parameters instead.
+MemoryRepository, and the LLM client (mock or real Anthropic backend,
+auto-selected based on ANTHROPIC_API_KEY). No other module in src/
+instantiates any of these (Stage E4/E5/E6 decisions) — every one of them
+takes these objects as explicit constructor or function parameters instead.
 
 Mirrors the notebook's own implicit construction order: Config -> Dataset
 -> Memory (StructuredMemory -> SemanticMemory -> EmbeddingProvider ->
@@ -17,7 +17,8 @@ from __future__ import annotations
 from typing import Any
 import sys
 import os
-from pathlib import Path 
+from dataclasses import replace
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -25,6 +26,7 @@ if str(ROOT) not in sys.path:
 from src.config.settings import CFG, Config
 from src.core.data_loader import load_dataset
 from src.graph.build import build_pipeline_graph, run_pipeline
+from src.llm.client import LLMClient
 from src.memory.embeddings import get_embedding_provider
 from src.memory.repository import MemoryRepository
 from src.memory.semantic_store import SemanticMemory
@@ -36,24 +38,6 @@ from src.memory.structured_store import (
 from src.reports.display import display_pipeline_outputs
 from src.reports.markdown_report import report_generation_node
 from src.reports.run_trace import print_run_trace
-
-
-class _MockOnlyLLMClient:
-    """TEMPORARY placeholder satisfying the ``llm_client.structured_call(...)``
-    interface every DI'd agent (EDA, Feature Engineering, Model
-    Recommendation, Critic, Planner — Stage E5 decision) expects.
-
-    Always calls ``mock_fn()`` — identical to the notebook's own default
-    behavior today (``CFG.use_mock_llm = True``, no real Anthropic backend
-    configured). This is NOT the notebook's ``LLMClient`` class — that
-    extraction is deferred to Stage F. This stand-in exists only so the
-    graph is runnable end-to-end before Stage F, and Stage F will replace
-    it with the real ``LLMClient`` here, in this one file, without touching
-    any agent module.
-    """
-
-    def structured_call(self, schema: Any, system_prompt: str, user_prompt: str, mock_fn):
-        return mock_fn()
 
 
 def build_dependencies(cfg: Config) -> dict[str, Any]:
@@ -70,7 +54,9 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
     embedding_provider = get_embedding_provider(cfg)
     memory_repository = MemoryRepository(structured, semantic, embedding_provider)
 
-    llm_client = _MockOnlyLLMClient()  # Stage F will replace this line only
+    llm_client = LLMClient(cfg)
+    print(f"LLMClient ready — backend: "
+          f"{'real (' + cfg.anthropic_model + ')' if llm_client._real_llm_available else 'mock (deterministic heuristics)'}")
 
     return {
         "structured": structured,
@@ -82,7 +68,7 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
 
 
 def main() -> None:
-    cfg = CFG
+    cfg = replace(CFG, use_mock_llm=os.environ.get("ANTHROPIC_API_KEY") is None)
     deps = build_dependencies(cfg)
 
     df, dataset_source = load_dataset(cfg)
@@ -120,11 +106,6 @@ def main() -> None:
     print(f"\nReport written to: {cfg.artifacts_dir}/pipeline_report.md "
           f"({len(final_state['report'])} characters)")
 
-    # See Stage E8 "Stop" section: display_pipeline_outputs uses
-    # IPython.display, which only works inside a notebook/IPython session.
-    # This guard is a NEW adaptation (the notebook always ran inside
-    # IPython, so this situation never arose there) — flagged for your
-    # confirmation rather than silently added.
     try:
         get_ipython()  # type: ignore[name-defined]  # noqa: F821
         display_pipeline_outputs(final_state)
