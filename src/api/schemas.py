@@ -10,3 +10,5 @@ class PipelineRunResponse(BaseModel):
     metrics: dict[str, float]
     report_path: str
     execution_time: float
+    prediction_path: str | None = None
+    target_column: str

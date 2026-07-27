@@ -14,20 +14,36 @@ from src.main import run_end_to_end
 _RUN_STORE: dict[str, dict] = {}
 
 
-def execute_pipeline_run(df, dataset_source: str, cfg, deps) -> dict:
+import pandas as pd
+
+def execute_pipeline_run(
+    train_df, test_df, dataset_source: str, target_column: str, cfg, deps
+) -> dict:
     run_id = str(uuid.uuid4())
     start = time.perf_counter()
 
-    final_state = run_end_to_end(df, dataset_source, cfg, deps)  # let it raise; route layer converts to HTTP
+    final_state = run_end_to_end(train_df, dataset_source, cfg, deps, target_column=target_column)
+
+    best_name = final_state["metrics"]["best_model_name"]
+    best_pipeline = final_state["models"]["trained_pipelines"][best_name]
+    test_features = test_df.drop(columns=[target_column], errors="ignore")
+    preds = best_pipeline.predict(test_features)
+
+    result_df = test_df.copy()
+    result_df[target_column] = preds
+    pred_path = f"{cfg.artifacts_dir}/prediction_{run_id}.csv"
+    result_df.to_csv(pred_path, index=False)
 
     result = {
         "run_id": run_id,
         "status": "completed",
-        "best_model": final_state["metrics"]["best_model_name"],
+        "best_model": best_name,
         "metrics": final_state["metrics"]["best_model_metrics"],
-        "report_path": f"{cfg.artifacts_dir}/pipeline_report.md",  # informational only — see note
+        "report_path": f"{cfg.artifacts_dir}/pipeline_report.md",
         "execution_time": time.perf_counter() - start,
-        "report_text": final_state["report"],  # captured per-run, since the file itself gets overwritten
+        "report_text": final_state["report"],
+        "prediction_path": pred_path,
+        "target_column": final_state["target_column"],
     }
     _RUN_STORE[run_id] = result
     return result

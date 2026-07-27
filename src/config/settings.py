@@ -46,7 +46,7 @@ class Config:
     embedding_provider: str = "local"          # "local" | "openai" | "voyageai" | "gemini"
     memory_retrieval_top_k: int = 5
     memory_min_similarity: float = 0.0         # 0.0 = no threshold filtering
-    memory_backend: str = "postgres"       # "sqlite" | "postgres"
+    memory_backend: str = "postgres"       
     postgres_dsn: str = (
         f"dbname={os.environ['POSTGRES_DB']} "
         f"user={os.environ['POSTGRES_USER']} "

@@ -1,10 +1,11 @@
 import io
 import pandas as pd
-from fastapi import APIRouter, UploadFile, File, HTTPException, Response
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response
 from fastapi.responses import JSONResponse
 import sys
 import os
 from pathlib import Path 
+
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -20,17 +21,32 @@ def health():
     return HealthResponse(status="healthy")
 
 @router.post("/pipeline/run", response_model=PipelineRunResponse)
-async def run_pipeline_endpoint(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Only CSV files are supported")
+async def run_pipeline_endpoint(
+    train_file: UploadFile = File(...),
+    test_file: UploadFile = File(...),
+    target_column: str | None = Form(None),
+):
+    for f in (train_file, test_file):
+        if not f.filename.lower().endswith(".csv"):
+            raise HTTPException(status_code=400, detail=f"'{f.filename}' is not a CSV file")
+
     try:
-        df = pd.read_csv(io.BytesIO(await file.read()))
+        train_df = pd.read_csv(io.BytesIO(await train_file.read()))
+        test_df = pd.read_csv(io.BytesIO(await test_file.read()))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid CSV: {exc}")
 
+    if target_column is not None and target_column not in train_df.columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{target_column}' is not a column in train_file. Available: {list(train_df.columns)}",
+        )
+
     cfg, deps = get_deps()
     try:
-        result = execute_pipeline_run(df, file.filename, cfg, deps)
+        result = execute_pipeline_run(
+            train_df, test_df, train_file.filename, target_column, cfg, deps
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}")
     return PipelineRunResponse(**{k: v for k, v in result.items() if k != "report_text"})

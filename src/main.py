@@ -127,9 +127,12 @@ def main() -> None:
     best_pipeline = final_state["models"]["trained_pipelines"][best_name]
     test_features = test_df.drop(columns=[target_column], errors="ignore")
     preds = best_pipeline.predict(test_features)
-    pred_path = f"{cfg.artifacts_dir}/test_predictions.csv"
-    pd.Series(preds, name=target_column).to_csv(pred_path, index=False)
-    print(f"Predictions written to: {pred_path} ({len(preds)} rows)")
+
+    result_df = test_df.copy()
+    result_df[target_column] = preds
+    pred_path = f"{cfg.artifacts_dir}/prediction.csv"
+    result_df.to_csv(pred_path, index=False)
+    print(f"Predictions written to: {pred_path} ({len(result_df)} rows)")
 
     try:
         get_ipython()  # type: ignore[name-defined]  # noqa: F821
