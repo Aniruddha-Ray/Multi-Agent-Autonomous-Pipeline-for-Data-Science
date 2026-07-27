@@ -1,6 +1,6 @@
 # Pipeline Report — synthetic fallback dataset (make_classification-based)
 
-_Generated 2026-07-27T02:06:27_
+_Generated 2026-07-27T13:39:43_
 
 ## 1. Dataset Summary
 
@@ -12,12 +12,10 @@ _Generated 2026-07-27T02:06:27_
 
 ## 2. Exploratory Data Analysis
 
-- Dataset has 1200 rows and 13 feature columns (10 numerical, 3 categorical).
-- Overall missingness is 5.47%.
-- High-cardinality categorical column(s) detected: ['category_id_highcard'] — candidates for target/frequency encoding rather than one-hot.
-- Strongest numerical correlation is between 'num_feature_4' and 'num_feature_8' (r=-0.80).
-- **Target balance:** Target is imbalanced (majority:minority ratio = 5.35).
-- **Correlation note:** Top correlated numerical pairs: [('num_feature_4', 'num_feature_8', -0.8), ('num_feature_2', 'num_feature_8', -0.57), ('num_feature_0', 'num_feature_2', -0.57)].
+- Class imbalance ratio of 5.35
+- High cardinality in category_id_highcard
+- **Target balance:** Target variable is imbalanced with 1011 instances of class 0 and 189 instances of class 1
+- **Correlation note:** High correlation between num_feature_0 and num_feature_6
 
 ## 3. Feature Engineering
 
@@ -28,7 +26,7 @@ _Generated 2026-07-27T02:06:27_
 - **Feature selection k:** n/a
 - **Imbalance handling:** True
 
-**Reasoning:** Planner decision supplied — used as the primary execution plan; metadata heuristics applied only where the Planner was silent. 10 numerical / 3 categorical columns detected. Imputation='median' chosen based on the Planner recommendation. Encoding='mixed': low-cardinality categoricals (['category_region', 'category_segment']) get one-hot, high-cardinality columns (['category_id_highcard']) get ordinal encoding to avoid dimensionality blow-up. Scaling=enabled (per Planner). Imbalance handling enabled (class_weight='balanced' where supported) (per Planner).
+**Reasoning:** Cheap fingerprint: 1200 rows, 10 numerical / 3 categorical cols, 5.5% missing, imbalance_ratio=5.35. Retrieved 1 similar past run(s) from memory.
 
 ## 4. Model Selection
 
@@ -36,12 +34,11 @@ _Generated 2026-07-27T02:06:27_
 
 **Candidates considered, in ranked order:**
 
-1. **CatBoost** — (score=4.5) Gradient/ensemble tree model — robust to feature scale and nonlinear interactions. Tolerates the high-cardinality categorical column(s) better than one-hot-heavy linear models. Supports native class-weighting to counter the observed target imbalance. Best native categorical-feature handling of the ensemble family.
-2. **XGBoost** — (score=4.0) Gradient/ensemble tree model — robust to feature scale and nonlinear interactions. Tolerates the high-cardinality categorical column(s) better than one-hot-heavy linear models. Supports native class-weighting to counter the observed target imbalance.
-3. **LightGBM** — (score=4.0) Gradient/ensemble tree model — robust to feature scale and nonlinear interactions. Tolerates the high-cardinality categorical column(s) better than one-hot-heavy linear models. Supports native class-weighting to counter the observed target imbalance.
-4. **Random Forest** — (score=3.5) Gradient/ensemble tree model — robust to feature scale and nonlinear interactions. Tolerates the high-cardinality categorical column(s) better than one-hot-heavy linear models.
-5. **Logistic Regression** — (score=2.0) Simple, interpretable, fast-to-train baseline; well suited to a low-dimensional (13 feature) setting where linear decision boundaries are a reasonable prior.
-6. **SVM** — (score=1.7) Kernel methods can capture nonlinear boundaries on small-to-medium data (1200 rows), but training cost grows poorly beyond a few thousand rows.
+1. **CatBoost** — Handling high cardinality and imbalanced data
+2. **XGBoost** — Handling missing values and high cardinality
+3. **LightGBM** — Efficient handling of large datasets
+4. **Random Forest** — Robust to overfitting and handling high cardinality
+5. **SVM** — Not the best choice due to high cardinality and imbalanced data
 
 ## 5. Metrics
 
@@ -86,14 +83,17 @@ Explainer: `TreeExplainer`
 
 ## 7. Critic Review
 
-**Recommendation:** `APPROVE`
+**Recommendation:** `REVISE`
 
 - Overfitting detected: False
 - Leakage suspected: False
 - Feature engineering OK: True
 - Metrics acceptable: True
 
-**Comments:** Reviewed 'LightGBM': train f1=1.000 vs held-out f1=0.933 (gap=0.067). No material issues found; approving the pipeline.
+**Issues raised:**
+- ignored domain features
+
+**Comments:** The model has a good performance with an accuracy of 0.9375 and an F1 score of 0.933. However, the feature engineering decision could be improved by considering the ignored domain features 'category_region' and 'category_segment'. The explainability summary shows that these features contribute negligible signal and may be candidates for removal. The planner decision is reasonable given the problem type and data characteristics. Overall, the model is well-performing, but some improvements can be made in feature engineering and explainability.
 
 ## 8. Memory
 
@@ -105,25 +105,26 @@ Explainer: `TreeExplainer`
 - Address class imbalance explicitly (e.g. class weighting, SMOTE, or a threshold-tuned decision boundary) rather than relying on weighted averaging in the metrics alone.
 - Investigate the missingness mechanism (MCAR/MAR/MNAR) rather than defaulting to median/most-frequent imputation, since >5% of cells are missing overall.
 - Revisit encoding for high-cardinality columns (category_id_highcard) — target or frequency encoding may generalize better than the current strategy.
+- Resolve the Critic's outstanding issues before treating this run's metrics as final: ignored domain features
 - Expand the Optuna budget past 20 trials on `LightGBM` specifically, now that it is the identified best candidate rather than one of several unknowns.
 
 ## Experience & Memory
-- **Experience score:** 0.8116
+- **Experience score:** 0.7216
 - **Generalization score:** 0.75
-- **Confidence:** 0.7
-- **Scorer reasoning:** performance=0.93, robustness=0.50, overfitting_penalty=1.00, critic_confidence=0.90, planner_confidence=0.50, preprocessing_quality=1.00 => experience_score=0.812 (retain)
+- **Confidence:** 0.4
+- **Scorer reasoning:** performance=0.93, robustness=0.50, overfitting_penalty=1.00, critic_confidence=0.30, planner_confidence=0.50, preprocessing_quality=1.00 => experience_score=0.722 (retain)
 
-- **Memory update action:** merge
-- **Stored?** Yes
+- **Memory update action:** ignore
+- **Stored?** No
 - **Replaced existing memory?** No
-- **Reason:** Comparable quality (0.787 vs 0.787) — merged in place.
+- **Reason:** Existing memory (quality 0.787) already stronger than new (0.733).
 
 **Retrieved similar memories considered:**
 - run 1 (similarity=1.00, model=LightGBM)
 
 ## Appendix: Execution Trace
 
-Total revision iterations: 1
+Total revision iterations: 3
 
 1. `dataset_analyzer` — status=ok
 2. `memory_retrieval` — status=ok
@@ -134,5 +135,19 @@ Total revision iterations: 1
 7. `training_agent` — status=ok
 8. `shap_explainability` — status=ok
 9. `critic_agent` — status=ok
-10. `experience_scorer` — status=ok
-11. `memory_update_policy` — status=ok
+10. `planner` — status=ok
+11. `eda_agent` — status=ok
+12. `feature_engineering_agent` — status=ok
+13. `model_recommendation_agent` — status=ok
+14. `training_agent` — status=ok
+15. `shap_explainability` — status=ok
+16. `critic_agent` — status=ok
+17. `planner` — status=ok
+18. `eda_agent` — status=ok
+19. `feature_engineering_agent` — status=ok
+20. `model_recommendation_agent` — status=ok
+21. `training_agent` — status=ok
+22. `shap_explainability` — status=ok
+23. `critic_agent` — status=ok
+24. `experience_scorer` — status=ok
+25. `memory_update_policy` — status=ok
