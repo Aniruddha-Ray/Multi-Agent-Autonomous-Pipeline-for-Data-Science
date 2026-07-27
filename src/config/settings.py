@@ -32,7 +32,7 @@ class Config:
     test_size: float = 0.2
     cv_folds: int = 5
     n_optuna_trials: int = 20
-    max_graph_iterations: int = 10
+    max_graph_iterations: int = 5
     high_cardinality_threshold: int = 15
     imbalance_ratio_threshold: float = 1.5
     pca_variance_threshold: float = 0.95
