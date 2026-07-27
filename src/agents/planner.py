@@ -12,7 +12,7 @@ explicit parameters (Stage E5 DI decisions):
     ``retrieve_similar_runs`` (Stage E4, Issue A).
 
 NOTE: this module imports ``CLASSIFICATION_MODELS``/``REGRESSION_MODELS``
-from ``agents.model_recommendation`` (Stage E5.6) — an existing cross-cell
+from ``src.agents.model_recommendation`` (Stage E5.6) — an existing cross-cell
 dependency in the notebook itself (Cell 24 already used these same
 constants, defined in Cell 8), not something introduced by extraction.
 """

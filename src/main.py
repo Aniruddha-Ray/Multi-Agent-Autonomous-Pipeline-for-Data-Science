@@ -56,7 +56,7 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
 
     llm_client = LLMClient(cfg)
     print(f"LLMClient ready — backend: "
-          f"{'real (' + cfg.anthropic_model + ')' if llm_client._real_llm_available else 'mock (deterministic heuristics)'}")
+          f"{'real (' + cfg.llm_model + ')' if llm_client._real_llm_available else 'mock (deterministic heuristics)'}")
 
     return {
         "structured": structured,
@@ -68,7 +68,7 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
 
 
 def main() -> None:
-    cfg = replace(CFG, use_mock_llm=os.environ.get("ANTHROPIC_API_KEY") is None)
+    cfg = replace(CFG, use_mock_llm=os.environ.get("GROQ_API_KEY") is None)
     deps = build_dependencies(cfg)
 
     df, dataset_source = load_dataset(cfg)
