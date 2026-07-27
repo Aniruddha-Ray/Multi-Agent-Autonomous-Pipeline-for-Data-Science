@@ -46,7 +46,11 @@ class Config:
     embedding_provider: str = "local"          # "local" | "openai" | "voyageai" | "gemini"
     memory_retrieval_top_k: int = 5
     memory_min_similarity: float = 0.0         # 0.0 = no threshold filtering
-
+# ADD two new fields to the Config dataclass (after embedding_provider,
+# for example) — every existing field is untouched, so this is fully
+# backward compatible; anyone not opting into Postgres sees zero change:
+    memory_backend: str = "sqlite"       # "sqlite" | "postgres"
+    postgres_dsn: str = "postgresql://postgres:postgres@localhost:5432/pipeline_memory"
 
 CFG = Config()
 ROOT_DIR = Path(__file__).resolve().parents[2]

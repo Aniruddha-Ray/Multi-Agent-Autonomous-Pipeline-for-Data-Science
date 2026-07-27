@@ -26,12 +26,12 @@ from src.memory.semantic_store import SemanticMemory
 from src.memory.structured_store import StructuredMemory
 
 
-def _ensure_soft_delete_column(conn) -> None:
-    """Additive schema migration — safe to run on an existing DB file."""
-    cols = [row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()]
-    if "deleted_at" not in cols:
-        conn.execute("ALTER TABLE runs ADD COLUMN deleted_at TEXT")
-        conn.commit()
+# def _ensure_soft_delete_column(conn) -> None:
+#     """Additive schema migration — safe to run on an existing DB file."""
+#     cols = [row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()]
+#     if "deleted_at" not in cols:
+#         conn.execute("ALTER TABLE runs ADD COLUMN deleted_at TEXT")
+#         conn.commit()
 
 
 LEGACY_EXPERIENCE_SCHEMA_VERSION: int = 1  # Implementation Task 6, persistence audit
@@ -89,17 +89,32 @@ class MemoryRepository:
     implementations of the objects passed into __init__.
     """
 
+    # def __init__(
+    #     self,
+    #     structured: StructuredMemory,
+    #     semantic: SemanticMemory,
+    #     embedding_provider: EmbeddingProvider,
+    # ) -> None:
+    #     self.structured = structured
+    #     self.semantic = semantic
+    #     self.embedding_provider = embedding_provider
+    #     _ensure_soft_delete_column(self.structured.conn)
+    #     self._rehydrate_semantic_index()
+
     def __init__(
-        self,
-        structured: StructuredMemory,
-        semantic: SemanticMemory,
-        embedding_provider: EmbeddingProvider,
-    ) -> None:
-        self.structured = structured
-        self.semantic = semantic
-        self.embedding_provider = embedding_provider
-        _ensure_soft_delete_column(self.structured.conn)
-        self._rehydrate_semantic_index()
+            self,
+            structured: Any,  # StructuredMemory (SQLite) or PostgresStructuredMemory (Stage G) — both
+                            # satisfy the same duck-typed interface: run_startup_migrations(),
+                            # add_run(), get_run(), all_runs(), count(), .conn
+            semantic: SemanticMemory,
+            embedding_provider: EmbeddingProvider,
+        ) -> None:
+            self.structured = structured
+            self.semantic = semantic
+            self.embedding_provider = embedding_provider
+            self.structured.run_startup_migrations()
+            self._rehydrate_semantic_index()
+
 
     def _rehydrate_semantic_index(self) -> None:
         """Rebuild the in-process FAISS index from SQLite on startup.

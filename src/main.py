@@ -30,10 +30,11 @@ from src.llm.client import LLMClient
 from src.memory.embeddings import get_embedding_provider
 from src.memory.repository import MemoryRepository
 from src.memory.semantic_store import SemanticMemory
+from src.memory.structured_store_postgres import PostgresStructuredMemory
 from src.memory.structured_store import (
     StructuredMemory,
-    _ensure_experience_payload_column,
-    _ensure_memory_quality_columns,
+    # _ensure_experience_payload_column,
+    # _ensure_memory_quality_columns,
 )
 from src.reports.display import display_pipeline_outputs
 from src.reports.markdown_report import report_generation_node
@@ -46,9 +47,11 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
     wiring): StructuredMemory -> SemanticMemory -> EmbeddingProvider ->
     MemoryRepository.
     """
-    structured = StructuredMemory(cfg.sqlite_path)
-    _ensure_experience_payload_column(structured.conn)
-    _ensure_memory_quality_columns(structured.conn)
+    if cfg.memory_backend == "postgres":
+        structured = PostgresStructuredMemory(cfg.postgres_dsn)
+    else:
+        structured = StructuredMemory(cfg.sqlite_path)
+    structured.run_startup_migrations()
 
     semantic = SemanticMemory(cfg.faiss_dim)
     embedding_provider = get_embedding_provider(cfg)

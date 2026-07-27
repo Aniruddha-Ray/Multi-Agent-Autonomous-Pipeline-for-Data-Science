@@ -48,6 +48,16 @@ class StructuredMemory:
         )
         self.conn.commit()
 
+    def run_startup_migrations(self) -> None:
+            """Backend-polymorphic entry point (Stage G) — MemoryRepository
+            calls this uniformly regardless of which concrete structured-store
+            backend it was given. Runs every additive schema migration this
+            backend needs, in the same order they were previously called
+            individually from main.py / MemoryRepository.__init__."""
+            _ensure_experience_payload_column(self.conn)
+            _ensure_memory_quality_columns(self.conn)
+            _ensure_soft_delete_column(self.conn)
+
     def add_run(self, dataset_summary, embedding, planner_reasoning=None,
                 chosen_model=None, metrics=None, critic_notes=None,
                 experience_payload=None) -> int:
@@ -130,3 +140,20 @@ def _ensure_memory_quality_columns(conn: sqlite3.Connection) -> None:
         if col not in cols:
             conn.execute(f"ALTER TABLE runs ADD COLUMN {col} {col_type}")
     conn.commit()
+
+# ADD near the bottom of the file, after _ensure_memory_quality_columns:
+
+def _ensure_soft_delete_column(conn: sqlite3.Connection) -> None:
+    """Relocated from memory/repository.py (Stage G, Postgres migration —
+    Issue 2). Was previously called directly by MemoryRepository.__init__
+    against a SQLite-only connection; now invoked polymorphically via
+    StructuredMemory.run_startup_migrations() so MemoryRepository never
+    needs to know which backend it's holding.
+    """
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()]
+    if "deleted_at" not in cols:
+        conn.execute("ALTER TABLE runs ADD COLUMN deleted_at TEXT")
+        conn.commit()
+
+
+
