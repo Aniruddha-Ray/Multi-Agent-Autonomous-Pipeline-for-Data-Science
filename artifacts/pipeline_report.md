@@ -1,6 +1,6 @@
 # Pipeline Report — synthetic fallback dataset (make_classification-based)
 
-_Generated 2026-07-27T13:46:42_
+_Generated 2026-07-27T16:44:18_
 
 ## 1. Dataset Summary
 
@@ -34,11 +34,11 @@ _Generated 2026-07-27T13:46:42_
 
 **Candidates considered, in ranked order:**
 
-1. **XGBoost** — Handles missing values and imbalanced datasets well, and is suitable for classification problems with a mix of numerical and categorical features
-2. **CatBoost** — Also handles missing values and imbalanced datasets, and has built-in support for categorical features
-3. **LightGBM** — Fast and efficient, and can handle large datasets, but may require more tuning for optimal performance
-4. **Random Forest** — Can handle missing values and is suitable for classification problems, but may not perform as well as gradient boosting models on imbalanced datasets
-5. **SVM** — Not the best choice for imbalanced datasets, and may require more tuning for optimal performance
+1. **XGBoost** — Handling imbalanced datasets and high cardinality features, XGBoost is suitable due to its robust handling of missing values and class weights.
+2. **CatBoost** — CatBoost is well-suited for datasets with high cardinality features and can handle imbalanced datasets. It also performs well with mixed encoding strategies.
+3. **LightGBM** — LightGBM is efficient for large datasets and can handle high cardinality features. It's also suitable for imbalanced datasets and performs well with the chosen encoding strategy.
+4. **Random Forest** — Random Forest can handle high cardinality features and missing values but may not perform as well as boosting models on imbalanced datasets.
+5. **Logistic Regression** — Logistic Regression is a baseline model but may not perform well on this dataset due to its simplicity and the presence of high cardinality features and imbalance.
 
 ## 5. Metrics
 
@@ -83,7 +83,7 @@ Explainer: `TreeExplainer`
 
 ## 7. Critic Review
 
-**Recommendation:** `APPROVE`
+**Recommendation:** `REVISE`
 
 - Overfitting detected: False
 - Leakage suspected: False
@@ -92,9 +92,8 @@ Explainer: `TreeExplainer`
 
 **Issues raised:**
 - ignored domain features
-- high cardinality of 'category_id_highcard'
 
-**Comments:** The model has a good performance with an accuracy of 0.9375 and an F1 score of 0.9330398517145505. However, the feature engineering decision could be improved by considering the ignored domain features and the high cardinality of the 'category_id_highcard' column. The explainability summary shows that the top features are mostly numerical, and the feature importance distribution is not highly skewed. The suspected target leakage is false, and the feature diversity score is 0.8002. The critic explainability notes suggest that 2 domain features may be candidates for removal. The planner decision is reasonable given the problem type and data characteristics. The metadata summary provides a clear overview of the data and the problem type.
+**Comments:** The model has a good performance with an accuracy of 0.9375 and an F1 score of 0.933. However, the feature engineering decision could be improved by considering the ignored domain features 'category_region' and 'category_segment'. The explainability summary shows that these features contribute negligible signal and may be candidates for removal. The planner decision is reasonable given the problem type and data characteristics. Overall, the model is well-performing, but some improvements can be made to the feature engineering and explainability.
 
 ## 8. Memory
 
@@ -106,26 +105,26 @@ Explainer: `TreeExplainer`
 - Address class imbalance explicitly (e.g. class weighting, SMOTE, or a threshold-tuned decision boundary) rather than relying on weighted averaging in the metrics alone.
 - Investigate the missingness mechanism (MCAR/MAR/MNAR) rather than defaulting to median/most-frequent imputation, since >5% of cells are missing overall.
 - Revisit encoding for high-cardinality columns (category_id_highcard) — target or frequency encoding may generalize better than the current strategy.
-- Resolve the Critic's outstanding issues before treating this run's metrics as final: ignored domain features; high cardinality of 'category_id_highcard'
+- Resolve the Critic's outstanding issues before treating this run's metrics as final: ignored domain features
 - Expand the Optuna budget past 20 trials on `LightGBM` specifically, now that it is the identified best candidate rather than one of several unknowns.
 
 ## Experience & Memory
-- **Experience score:** 0.8116
+- **Experience score:** 0.7216
 - **Generalization score:** 0.75
-- **Confidence:** 0.7
-- **Scorer reasoning:** performance=0.93, robustness=0.50, overfitting_penalty=1.00, critic_confidence=0.90, planner_confidence=0.50, preprocessing_quality=1.00 => experience_score=0.812 (retain)
+- **Confidence:** 0.4
+- **Scorer reasoning:** performance=0.93, robustness=0.50, overfitting_penalty=1.00, critic_confidence=0.30, planner_confidence=0.50, preprocessing_quality=1.00 => experience_score=0.722 (retain)
 
-- **Memory update action:** merge
-- **Stored?** Yes
+- **Memory update action:** ignore
+- **Stored?** No
 - **Replaced existing memory?** No
-- **Reason:** Comparable quality (0.787 vs 0.787) — merged in place.
+- **Reason:** Existing memory (quality 0.787) already stronger than new (0.733).
 
 **Retrieved similar memories considered:**
 - run 1 (similarity=1.00, model=LightGBM)
 
 ## Appendix: Execution Trace
 
-Total revision iterations: 2
+Total revision iterations: 5
 
 1. `dataset_analyzer` — status=ok
 2. `memory_retrieval` — status=ok
@@ -143,5 +142,26 @@ Total revision iterations: 2
 14. `training_agent` — status=ok
 15. `shap_explainability` — status=ok
 16. `critic_agent` — status=ok
-17. `experience_scorer` — status=ok
-18. `memory_update_policy` — status=ok
+17. `planner` — status=ok
+18. `eda_agent` — status=ok
+19. `feature_engineering_agent` — status=ok
+20. `model_recommendation_agent` — status=ok
+21. `training_agent` — status=ok
+22. `shap_explainability` — status=ok
+23. `critic_agent` — status=ok
+24. `planner` — status=ok
+25. `eda_agent` — status=ok
+26. `feature_engineering_agent` — status=ok
+27. `model_recommendation_agent` — status=ok
+28. `training_agent` — status=ok
+29. `shap_explainability` — status=ok
+30. `critic_agent` — status=ok
+31. `planner` — status=ok
+32. `eda_agent` — status=ok
+33. `feature_engineering_agent` — status=ok
+34. `model_recommendation_agent` — status=ok
+35. `training_agent` — status=ok
+36. `shap_explainability` — status=ok
+37. `critic_agent` — status=ok
+38. `experience_scorer` — status=ok
+39. `memory_update_policy` — status=ok

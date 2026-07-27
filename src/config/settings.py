@@ -49,9 +49,14 @@ class Config:
 # ADD two new fields to the Config dataclass (after embedding_provider,
 # for example) — every existing field is untouched, so this is fully
 # backward compatible; anyone not opting into Postgres sees zero change:
-    memory_backend: str = "sqlite"       # "sqlite" | "postgres"
-    postgres_dsn: str = "postgresql://postgres:postgres@localhost:5432/pipeline_memory"
-
+    memory_backend: str = "postgres"       # "sqlite" | "postgres"
+    postgres_dsn: str = (
+        f"dbname={os.environ['POSTGRES_DB']} "
+        f"user={os.environ['POSTGRES_USER']} "
+        f"password={os.environ['POSTGRES_PASSWORD']} "
+        f"host={os.environ['POSTGRES_HOST']} "
+        f"port={os.environ['POSTGRES_PORT']}"
+    )
 CFG = Config()
 ROOT_DIR = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = str(ROOT_DIR / CFG.artifacts_dir)

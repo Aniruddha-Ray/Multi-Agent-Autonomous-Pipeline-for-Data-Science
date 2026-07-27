@@ -220,3 +220,6 @@ tests/
 DSagent/
 .env
 .env*
+*.db
+artifacts/
+catboost_info/
