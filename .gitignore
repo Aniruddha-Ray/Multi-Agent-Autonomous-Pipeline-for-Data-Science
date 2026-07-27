@@ -225,3 +225,4 @@ artifacts/
 catboost_info/
 .db
 STAGE_1_ARCHITECTURE.md
+upload_Train_Test_data/

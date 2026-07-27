@@ -19,27 +19,25 @@ import sys
 import os
 from dataclasses import replace
 from pathlib import Path
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from src.config.settings import CFG, Config
-from src.core.data_loader import load_dataset
+from src.core.data_loader import load_train_test
+from src.core.metadata import resolve_target_column
 from src.graph.build import build_pipeline_graph, run_pipeline
 from src.llm.client import LLMClient
 from src.memory.embeddings import get_embedding_provider
 from src.memory.repository import MemoryRepository
 from src.memory.semantic_store import SemanticMemory
 from src.memory.structured_store_postgres import PostgresStructuredMemory
-from src.memory.structured_store import (
-    StructuredMemory,
-    # _ensure_experience_payload_column,
-    # _ensure_memory_quality_columns,
-)
+from src.memory.structured_store import StructuredMemory
 from src.reports.display import display_pipeline_outputs
 from src.reports.markdown_report import report_generation_node
 from src.reports.run_trace import print_run_trace
-
+from src.models.state import PipelineState  # add to the import block
 
 def build_dependencies(cfg: Config) -> dict[str, Any]:
     """Construct every singleton the graph needs, in the dependency order
@@ -50,7 +48,7 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
     if cfg.memory_backend == "postgres":
         structured = PostgresStructuredMemory(cfg.postgres_dsn)
     else:
-        structured = StructuredMemory(cfg.sqlite_path)
+        structured = StructuredMemory(cfg.database_path)
     structured.run_startup_migrations()
 
     semantic = SemanticMemory(cfg.faiss_dim)
@@ -69,15 +67,21 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
         "llm_client": llm_client,
     }
 
+def get_runtime_config() -> Config:
+    """Resolve the runtime Config exactly as the CLI does: mock LLM iff
+    GROQ_API_KEY is absent. Single source of truth — reused by main() and
+    by the FastAPI dependency layer so the two never diverge."""
+    return replace(CFG, use_mock_llm=os.environ.get("GROQ_API_KEY") is None)
 
-def main() -> None:
-    cfg = replace(CFG, use_mock_llm=os.environ.get("GROQ_API_KEY") is None)
-    deps = build_dependencies(cfg)
 
-    df, dataset_source = load_dataset(cfg)
-    print(f"Running pipeline graph on: {dataset_source}")
-    print(f"Dataset shape            : {df.shape}\n")
-
+def run_end_to_end(
+    df: pd.DataFrame, dataset_source: str, cfg: Config, deps: dict[str, Any],
+    target_column: str | None = None,
+) -> PipelineState:
+    """Execute one full run: build graph -> run_pipeline -> report
+    generation. This is the exact sequence main() used to run inline,
+    with the printing removed. FastAPI's /pipeline/run calls this same
+    function — no second execution path exists anywhere."""
     graph = build_pipeline_graph(
         cfg=cfg,
         llm_client=deps["llm_client"],
@@ -85,8 +89,20 @@ def main() -> None:
         structured=deps["structured"],
         semantic=deps["semantic"],
     )
+    final_state = run_pipeline(df, dataset_source, graph, cfg, target_column=target_column)
+    final_state = report_generation_node(final_state, cfg)
+    return final_state
 
-    final_state = run_pipeline(df, dataset_source, graph, cfg)
+def main() -> None:
+    cfg = get_runtime_config()
+    deps = build_dependencies(cfg)
+
+    train_df, test_df, dataset_source, test_source = load_train_test(cfg)
+    target_column = resolve_target_column(train_df)
+    print(f"Running pipeline graph on: {dataset_source}")
+    print(f"Dataset shape            : {train_df.shape}\n")
+
+    final_state = run_end_to_end(train_df, dataset_source, cfg, deps, target_column=target_column)
 
     print()
     print_run_trace(final_state, cfg)
@@ -105,9 +121,15 @@ def main() -> None:
           f"— {final_state['memory_update_decision']['reason']}")
     print(f"Total runs stored : {final_state['memory_update_decision'].get('total_runs_stored', 'n/a')}")
 
-    final_state = report_generation_node(final_state, cfg)
     print(f"\nReport written to: {cfg.artifacts_dir}/pipeline_report.md "
           f"({len(final_state['report'])} characters)")
+    best_name = final_state["metrics"]["best_model_name"]
+    best_pipeline = final_state["models"]["trained_pipelines"][best_name]
+    test_features = test_df.drop(columns=[target_column], errors="ignore")
+    preds = best_pipeline.predict(test_features)
+    pred_path = f"{cfg.artifacts_dir}/test_predictions.csv"
+    pd.Series(preds, name=target_column).to_csv(pred_path, index=False)
+    print(f"Predictions written to: {pred_path} ({len(preds)} rows)")
 
     try:
         get_ipython()  # type: ignore[name-defined]  # noqa: F821

@@ -38,6 +38,14 @@ def _infer_target_column(df: pd.DataFrame) -> str:
             return candidate
     return df.columns[-1]
 
+def resolve_target_column(df: pd.DataFrame) -> str:
+    raw = input(f"Target column (columns: {list(df.columns)}) — press Enter to auto-detect: ").strip()
+    if raw:
+        if raw not in df.columns:
+            raise ValueError(f"'{raw}' is not a column in the dataset.")
+        return raw
+    return _infer_target_column(df)
+
 
 def _infer_problem_type(series: pd.Series) -> Literal["classification", "regression"]:
     """Heuristically decide classification vs. regression from the target."""

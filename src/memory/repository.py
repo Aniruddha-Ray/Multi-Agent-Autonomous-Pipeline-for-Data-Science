@@ -181,31 +181,53 @@ class MemoryRepository:
         """Update mutable columns (chosen_model, metrics_json, critic_notes_json)
         on an existing run. Does not touch the embedding or FAISS index."""
         allowed = {
-            "chosen_model", "metrics_json", "critic_notes_json", "planner_reasoning_json",
+            "chosen_model",
+            "metrics_json",
+            "critic_notes_json",
+            "planner_reasoning_json",
             "experience_payload_json",  # NEW — Implementation Task 1/2, persistence audit
         }
+
         updates = {k: v for k, v in fields.items() if k in allowed}
         if not updates:
             return False
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        values = [json.dumps(v, default=str) if k.endswith("_json") and not isinstance(v, str) else v
-                  for k, v in updates.items()]
-        cur = self.structured.conn.execute(
-            f"UPDATE runs SET {set_clause} WHERE run_id = ?", (*values, run_id)
-        )
+
+        set_clause = ", ".join(f"{k} = %s" for k in updates)
+
+        values = [
+            json.dumps(v, default=str)
+            if k.endswith("_json") and not isinstance(v, str)
+            else v
+            for k, v in updates.items()
+        ]
+        values.append(run_id)
+
+        with self.structured.conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE runs SET {set_clause} WHERE run_id = %s",
+                values,
+            )
+            updated = cur.rowcount
+
         self.structured.conn.commit()
-        return cur.rowcount > 0
+        return updated > 0
 
     def delete_memory(self, run_id: int) -> bool:
         """Soft delete: marks the row so it's excluded from retrieval/listing.
         FAISS IndexFlatL2 has no per-vector remove, so the vector stays in
         the index but is filtered out post-search — safe, no index rebuild."""
-        cur = self.structured.conn.execute(
-            "UPDATE runs SET deleted_at = ? WHERE run_id = ? AND deleted_at IS NULL",
-            (datetime.utcnow().isoformat(), run_id),
-        )
+        
+        with self.structured.conn.cursor() as cur:
+            cur.execute(
+                "UPDATE runs "
+                "SET deleted_at = %s "
+                "WHERE run_id = %s AND deleted_at IS NULL",
+                (datetime.utcnow().isoformat(), run_id),
+            )
+            updated = cur.rowcount
+
         self.structured.conn.commit()
-        return cur.rowcount > 0
+        return updated > 0
 
     def set_quality(self, run_id: int, **quality_fields: Any) -> None:
         """Writes memory_quality/experience_score/confidence/success_rate
@@ -214,11 +236,19 @@ class MemoryRepository:
         updates = {k: v for k, v in quality_fields.items() if k in allowed}
         if not updates:
             return
+
         updates["last_updated"] = datetime.utcnow().isoformat()
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        self.structured.conn.execute(
-            f"UPDATE runs SET {set_clause} WHERE run_id = ?", (*updates.values(), run_id)
-        )
+
+        set_clause = ", ".join(f"{k} = %s" for k in updates)
+        values = list(updates.values())
+        values.append(run_id)
+
+        with self.structured.conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE runs SET {set_clause} WHERE run_id = %s",
+                values,
+            )
+
         self.structured.conn.commit()
 
     def _touch_retrieved(self, run_ids: list[int]) -> None:
@@ -226,12 +256,19 @@ class MemoryRepository:
         actually returned by retrieve_memories()."""
         if not run_ids:
             return
+
         now = datetime.utcnow().isoformat()
-        for run_id in run_ids:
-            self.structured.conn.execute(
-                "UPDATE runs SET retrieval_count = COALESCE(retrieval_count, 0) + 1, "
-                "last_retrieved = ? WHERE run_id = ?", (now, run_id),
-            )
+
+        with self.structured.conn.cursor() as cur:
+            for run_id in run_ids:
+                cur.execute(
+                    "UPDATE runs "
+                    "SET retrieval_count = COALESCE(retrieval_count, 0) + 1, "
+                    "last_retrieved = %s "
+                    "WHERE run_id = %s",
+                    (now, run_id),
+                )
+
         self.structured.conn.commit()
 
     # ---- read path --------------------------------------------------------

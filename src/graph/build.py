@@ -126,13 +126,14 @@ def build_pipeline_graph(
 
     return graph.compile()
 
-def run_pipeline(df: pd.DataFrame, dataset_source: str, graph: Any, cfg: Config) -> PipelineState:
-    """Invoke the compiled LangGraph pipeline on a dataset end-to-end."""
+def run_pipeline(df, dataset_source, graph, cfg, target_column: str | None = None):
     initial_state: PipelineState = {
         "dataset": df,
         "dataset_source": dataset_source,
         "history": [],
     }
+    if target_column:
+        initial_state["target_column"] = target_column
     recursion_budget = 8 * cfg.max_graph_iterations + 10
     final_state = graph.invoke(initial_state, config={"recursion_limit": recursion_budget})
     return final_state

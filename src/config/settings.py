@@ -39,16 +39,13 @@ class Config:
     overfit_gap_threshold: float = 0.12
     use_mock_llm: bool = True
     llm_model: str = "llama-3.3-70b-versatile"
-    sqlite_path: str = "pipeline_memory.db"
+    database_path: str = "pipeline_memory.db"
     faiss_dim: int = 32
-    uploads_dir: str = "/mnt/user-data/uploads"
+    uploads_dir: str = "upload_Train_Test_data"
     artifacts_dir: str = "artifacts"
     embedding_provider: str = "local"          # "local" | "openai" | "voyageai" | "gemini"
     memory_retrieval_top_k: int = 5
     memory_min_similarity: float = 0.0         # 0.0 = no threshold filtering
-# ADD two new fields to the Config dataclass (after embedding_provider,
-# for example) — every existing field is untouched, so this is fully
-# backward compatible; anyone not opting into Postgres sees zero change:
     memory_backend: str = "postgres"       # "sqlite" | "postgres"
     postgres_dsn: str = (
         f"dbname={os.environ['POSTGRES_DB']} "
