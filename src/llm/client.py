@@ -29,11 +29,13 @@ class LLMClient:
         self.cfg = cfg
         self._real_llm_available = False
         self._chat_model = None
-        if not cfg.use_mock_llm and os.environ.get("ANTHROPIC_API_KEY"):
+        if not cfg.use_mock_llm and os.environ.get("GROQ_API_KEY"):
             try:
-                from langchain_anthropic import ChatAnthropic  # type: ignore
+                from langchain_groq import ChatGroq  # type: ignore
 
-                self._chat_model = ChatAnthropic(model=cfg.anthropic_model, temperature=0)
+                self._chat_model = ChatGroq(
+                    model=cfg.llm_model, temperature=0
+                )
                 self._real_llm_available = True
             except Exception as exc:  # noqa: BLE001
                 print(f"[LLMClient] Falling back to mock backend ({exc})")

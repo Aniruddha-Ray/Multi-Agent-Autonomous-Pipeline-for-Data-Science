@@ -38,7 +38,7 @@ class Config:
     pca_variance_threshold: float = 0.95
     overfit_gap_threshold: float = 0.12
     use_mock_llm: bool = True
-    anthropic_model: str = "claude-sonnet-4-6"
+    llm_model: str = "llama-3.3-70b-versatile"
     sqlite_path: str = "pipeline_memory.db"
     faiss_dim: int = 32
     uploads_dir: str = "/mnt/user-data/uploads"
