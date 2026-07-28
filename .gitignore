@@ -242,3 +242,7 @@ upload_Train_Test_data/
 
 # db state if ever mounted to a bind path
 postgres_data/
+
+poetry.lock
+pyproject.toml
+Makefile
