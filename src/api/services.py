@@ -8,6 +8,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from src.main import run_end_to_end
 
+import logging
+logger = logging.getLogger(__name__)
+
 # In-memory run store — process-local, does not survive a restart.
 # See open note below on making this durable.
 _RUN_STORE: dict[str, dict] = {}
@@ -18,6 +21,9 @@ def execute_pipeline_run(
     problem_type: str | None = None,
 ) -> dict:
     run_id = str(uuid.uuid4())
+    logger.info(f"Starting run {run_id} — dataset_source={dataset_source}, "
+                f"target_column={target_column or 'auto-detect'}, problem_type={problem_type or 'auto-detect'}")
+
     start = time.perf_counter()
 
     final_state = run_end_to_end(

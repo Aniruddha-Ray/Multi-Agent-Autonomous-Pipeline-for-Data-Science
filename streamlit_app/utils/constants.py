@@ -1,4 +1,5 @@
-API_BASE_URL = "http://localhost:8000"
+import os
+API_BASE_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
 ENDPOINTS = {
     "health": "/health",
@@ -15,7 +16,7 @@ THEME = {
     "success": "#22C55E",
     "warning": "#F59E0B",
     "error": "#EF4444",
-    "bg": "#F7F8FA",
+    "bg": "#6923A8",
     "card": "#FFFFFF",
     "text": "#1E293B",
     "text_muted": "#64748B",

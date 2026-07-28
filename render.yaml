@@ -1,0 +1,60 @@
+databases:
+  - name: pipeline-postgres
+    plan: free
+    databaseName: pipeline_memory
+    user: pipeline_user
+
+services:
+  - type: web
+    name: pipeline-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile.backend
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: pipeline-postgres
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: pipeline-postgres
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: pipeline-postgres
+          property: password
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: pipeline-postgres
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: pipeline-postgres
+          property: port
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://pipeline-streamlit.onrender.com
+      - key: TRUSTED_HOSTS
+        value: pipeline-backend.onrender.com
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: "600"
+      - key: ARTIFACT_DIRECTORY
+        value: /app/artifacts
+      - key: UPLOAD_DIRECTORY
+        value: /app/upload_Train_Test_data
+
+  - type: web
+    name: pipeline-streamlit
+    runtime: docker
+    dockerfilePath: ./Dockerfile.streamlit
+    dockerContext: .
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: BACKEND_URL
+        value: https://pipeline-backend.onrender.com

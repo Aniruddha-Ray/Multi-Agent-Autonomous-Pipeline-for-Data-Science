@@ -1,2 +1,3 @@
-streamlit
-streamlit requests
+streamlit == 1.60.0
+requests == 2.34.2
+pandas == 2.3.3

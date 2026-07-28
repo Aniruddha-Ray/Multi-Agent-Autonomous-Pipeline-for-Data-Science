@@ -39,6 +39,12 @@ from src.reports.markdown_report import report_generation_node
 from src.reports.run_trace import print_run_trace
 from src.models.state import PipelineState  # add to the import block
 
+import logging
+from src.logging_config import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
+
 def build_dependencies(cfg: Config) -> dict[str, Any]:
     """Construct every singleton the graph needs, in the dependency order
     established across Stage E4 (memory subsystem) and Stage E6 (graph
@@ -56,7 +62,7 @@ def build_dependencies(cfg: Config) -> dict[str, Any]:
     memory_repository = MemoryRepository(structured, semantic, embedding_provider)
 
     llm_client = LLMClient(cfg)
-    print(f"LLMClient ready — backend: "
+    logger.info(f"LLMClient ready — backend: "
           f"{'real (' + cfg.llm_model + ')' if llm_client._real_llm_available else 'mock (deterministic heuristics)'}")
 
     return {
@@ -99,30 +105,29 @@ def main() -> None:
 
     train_df, test_df, dataset_source, test_source = load_train_test(cfg)
     target_column = resolve_target_column(train_df)
-    print(f"Running pipeline graph on: {dataset_source}")
-    print(f"Dataset shape            : {train_df.shape}\n")
+    logger.info(f"Running pipeline graph on: {dataset_source}")
+    logger.info(f"Dataset shape            : {train_df.shape}\n")
 
     problem_type = prompt_problem_type(train_df, target_column)
     final_state = run_end_to_end(train_df, dataset_source, cfg, deps, target_column=target_column, problem_type=problem_type)
 
-    print()
+    
     print_run_trace(final_state, cfg)
 
-    print("\n" + "-" * 70)
-    print("FINAL RESULT")
-    print("-" * 70)
-    print(f"Problem type      : {final_state['metadata']['problem_type']}")
-    print(f"Best model        : {final_state['metrics']['best_model_name']}")
-    print(f"Best model metrics: { {k: round(v, 4) for k, v in final_state['metrics']['best_model_metrics'].items()} }")
-    print(f"Critic verdict    : {final_state['critic']['recommendation'].upper()}")
-    print(f"Critic comments   : {final_state['critic']['comments']}")
-    print(f"Experience score  : {final_state['experience_score']['experience_score']:.3f} "
+    logger.info("FINAL RESULT")
+    
+    logger.info(f"Problem type      : {final_state['metadata']['problem_type']}")
+    logger.info(f"Best model        : {final_state['metrics']['best_model_name']}")
+    logger.info(f"Best model metrics: { {k: round(v, 4) for k, v in final_state['metrics']['best_model_metrics'].items()} }")
+    logger.info(f"Critic verdict    : {final_state['critic']['recommendation'].upper()}")
+    logger.info(f"Critic comments   : {final_state['critic']['comments']}")
+    logger.info(f"Experience score  : {final_state['experience_score']['experience_score']:.3f} "
           f"({final_state['experience_score']['recommendation']})")
-    print(f"Memory decision   : {final_state['memory_update_decision']['action']} "
+    logger.info(f"Memory decision   : {final_state['memory_update_decision']['action']} "
           f"— {final_state['memory_update_decision']['reason']}")
-    print(f"Total runs stored : {final_state['memory_update_decision'].get('total_runs_stored', 'n/a')}")
+    logger.info(f"Total runs stored : {final_state['memory_update_decision'].get('total_runs_stored', 'n/a')}")
 
-    print(f"\nReport written to: {cfg.artifacts_dir}/pipeline_report.md "
+    logger.info(f"\nReport written to: {cfg.artifacts_dir}/pipeline_report.md "
           f"({len(final_state['report'])} characters)")
     best_name = final_state["metrics"]["best_model_name"]
     best_pipeline = final_state["models"]["trained_pipelines"][best_name]
@@ -133,13 +138,13 @@ def main() -> None:
     result_df[target_column] = preds
     pred_path = f"{cfg.artifacts_dir}/prediction.csv"
     result_df.to_csv(pred_path, index=False)
-    print(f"Predictions written to: {pred_path} ({len(result_df)} rows)")
+    logger.info(f"Predictions written to: {pred_path} ({len(result_df)} rows)")
 
     try:
         get_ipython()  # type: ignore[name-defined]  # noqa: F821
         display_pipeline_outputs(final_state)
     except NameError:
-        print("\n(Skipping display_pipeline_outputs — not running inside IPython/Jupyter.)")
+        logger.info("\n(Skipping display_pipeline_outputs — not running inside IPython/Jupyter.)")
 
 
 if __name__ == "__main__":

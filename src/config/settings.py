@@ -54,8 +54,17 @@ class Config:
         f"host={os.environ['POSTGRES_HOST']} "
         f"port={os.environ['POSTGRES_PORT']}"
     )
+    environment: str = "development"
+    debug: bool = True
+
+
 CFG = Config()
 ROOT_DIR = Path(__file__).resolve().parents[2]
-ARTIFACTS_DIR = str(ROOT_DIR / CFG.artifacts_dir)
+ARTIFACTS_DIR = os.environ.get("ARTIFACT_DIRECTORY") or str(ROOT_DIR / CFG.artifacts_dir)
+UPLOADS_DIR = os.environ.get("UPLOAD_DIRECTORY") or str(ROOT_DIR / CFG.uploads_dir)
 os.makedirs(ARTIFACTS_DIR, exist_ok=True)
-CFG = Config(artifacts_dir=ARTIFACTS_DIR)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+DEBUG = ENVIRONMENT != "production"
+
+CFG = Config(artifacts_dir=ARTIFACTS_DIR, uploads_dir=UPLOADS_DIR, environment=ENVIRONMENT, debug=DEBUG)

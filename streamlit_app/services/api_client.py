@@ -6,12 +6,25 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from streamlit_app.utils.constants import API_BASE_URL, ENDPOINTS
-
+import time
 
 def health() -> dict:
     resp = requests.get(API_BASE_URL + ENDPOINTS["health"], timeout=5)
     resp.raise_for_status()
     return resp.json()
+
+
+def wait_for_backend(max_attempts: int = 10, delay_seconds: float = 2.0):
+    """Retries health() with backoff. Returns the health payload on success,
+    or raises the last exception after exhausting attempts."""
+    last_exc = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return health()
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(delay_seconds)
+    raise last_exc
 
 
 def run_pipeline(train_file_bytes: bytes, train_filename: str,

@@ -5,8 +5,6 @@ from fastapi.responses import JSONResponse
 import sys
 from pathlib import Path 
 import os
-
-
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -14,12 +12,42 @@ from src.api.schemas import HealthResponse, PipelineRunResponse
 from src.api.dependencies import get_deps
 from src.api.services import execute_pipeline_run, get_memory_snapshot, _RUN_STORE
 from src.core.metadata import resolve_problem_type
+import logging
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter()
 
 @router.get("/health", response_model=HealthResponse)
+@router.get("/api/health", response_model=HealthResponse)
 def health():
-    return HealthResponse(status="healthy")
+    cfg, deps = get_deps()
+
+    db_status = "unknown"
+    try:
+        deps["structured"].conn.cursor()
+        db_status = "connected"
+    except Exception:
+        db_status = "unavailable"
+        logger.warning("Health check: database unreachable")
+
+    llm_status = "real" if deps["llm_client"]._real_llm_available else "mock"
+    groq_configured = bool(os.environ.get("GROQ_API_KEY"))
+
+    memory_initialized = False
+    try:
+        memory_initialized = deps["structured"] is not None and deps["semantic"] is not None
+    except Exception:
+        logger.warning("Health check: memory subsystem not initialized")
+
+    return HealthResponse(
+        status="healthy" if db_status == "connected" else "degraded",
+        version=os.environ.get("APP_VERSION", "unknown"),
+        database=db_status,
+        llm=llm_status,
+        groq_configured=groq_configured,
+        memory_initialized=memory_initialized,
+    )
 
 @router.post("/pipeline/run", response_model=PipelineRunResponse)
 async def run_pipeline_endpoint(
@@ -57,7 +85,11 @@ async def run_pipeline_endpoint(
             problem_type=resolved_problem_type
         )
     except Exception as exc:
+        logger.exception(f"Pipeline execution failed for train_file={train_file.filename}")
         raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}")
+
+    logger.info(f"Run {result['run_id']} completed — best_model={result['best_model']}, "
+                f"execution_time={result['execution_time']:.2f}s")
     return PipelineRunResponse(**{k: v for k, v in result.items() if k != "report_text"})
 
 @router.get("/runs/{run_id}")
@@ -95,4 +127,5 @@ def get_memory(limit: int | None = None):
     try:
         return JSONResponse(content=get_memory_snapshot(deps, limit=limit))
     except Exception as exc:
+        logger.exception("Memory read failed")
         raise HTTPException(status_code=500, detail=f"Memory read failed: {exc}")

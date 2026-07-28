@@ -219,10 +219,26 @@ __marimo__/
 tests/
 DSagent/
 .env
-.env*
 *.db
 artifacts/
 catboost_info/
 .db
 STAGE_1_ARCHITECTURE.md
 upload_Train_Test_data/
+# secrets
+.env
+*.env
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# artifacts that now live in named volumes, not the repo
+artifacts/
+upload_Train_Test_data/
+
+# db state if ever mounted to a bind path
+postgres_data/

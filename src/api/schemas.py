@@ -2,6 +2,11 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     status: str
+    version: str
+    database: str
+    llm: str
+    groq_configured: bool
+    memory_initialized: bool
 
 class PipelineRunResponse(BaseModel):
     run_id: str
