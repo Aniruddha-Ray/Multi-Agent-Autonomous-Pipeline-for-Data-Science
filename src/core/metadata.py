@@ -20,7 +20,6 @@ from typing import Any, Literal, Optional
 import numpy as np
 import pandas as pd
 import sys
-import os
 from pathlib import Path 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +56,9 @@ def _infer_problem_type(series: pd.Series) -> Literal["classification", "regress
     return "regression"
 
 
-def compute_dataset_metadata(df: pd.DataFrame, target_column: Optional[str] = None) -> dict[str, Any]:
+def compute_dataset_metadata(
+    df: pd.DataFrame, target_column: Optional[str] = None, problem_type: Optional[str] = None
+) -> dict[str, Any]:
     """Deterministically compute the dataset metadata block described in the
     master prompt: shape, missingness, column typing, target type, class
     imbalance, correlations and summary statistics.
@@ -78,7 +79,7 @@ def compute_dataset_metadata(df: pd.DataFrame, target_column: Optional[str] = No
     cardinality = {c: int(df[c].nunique(dropna=True)) for c in categorical_columns}
     avg_cardinality = float(np.mean(list(cardinality.values()))) if cardinality else 0.0
 
-    problem_type = _infer_problem_type(df[target_column])
+    problem_type = problem_type or _infer_problem_type(df[target_column])
 
     imbalance_ratio = 1.0
     class_counts: dict[str, int] = {}
@@ -114,3 +115,22 @@ def compute_dataset_metadata(df: pd.DataFrame, target_column: Optional[str] = No
         "summary_statistics": summary_statistics,
     }
     return metadata
+
+def resolve_problem_type(raw: str | None) -> Optional[str]:
+
+    if not raw:
+        return None
+    raw = raw.strip().lower()
+    if raw not in ("classification", "regression"):
+        raise ValueError(f"problem_type must be 'classification' or 'regression', got '{raw}'")
+    return raw
+
+def prompt_problem_type(df: pd.DataFrame, target_column: str) -> Optional[str]:
+    """Interactive CLI counterpart to `resolve_target_column` — ask the user,
+    showing the auto-detected suggestion, and fall back to it if left blank."""
+    suggested = _infer_problem_type(df[target_column])
+    raw = input(
+        f"Problem type — 'classification' or 'regression' "
+        f"(auto-detected: '{suggested}', press Enter to accept): "
+    ).strip()
+    return resolve_problem_type(raw) or suggested

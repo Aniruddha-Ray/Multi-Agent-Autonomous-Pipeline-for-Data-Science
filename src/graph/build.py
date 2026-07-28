@@ -22,8 +22,6 @@ from typing import Any
 
 from langgraph.graph import END, StateGraph
 import sys
-import pandas as pd
-import os
 from pathlib import Path 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -126,7 +124,7 @@ def build_pipeline_graph(
 
     return graph.compile()
 
-def run_pipeline(df, dataset_source, graph, cfg, target_column: str | None = None):
+def run_pipeline(df, dataset_source, graph, cfg, target_column: str | None = None, problem_type: str | None = None):
     initial_state: PipelineState = {
         "dataset": df,
         "dataset_source": dataset_source,
@@ -134,6 +132,8 @@ def run_pipeline(df, dataset_source, graph, cfg, target_column: str | None = Non
     }
     if target_column:
         initial_state["target_column"] = target_column
+    if problem_type:
+        initial_state["problem_type"] = problem_type
     recursion_budget = 8 * cfg.max_graph_iterations + 10
     final_state = graph.invoke(initial_state, config={"recursion_limit": recursion_budget})
     return final_state

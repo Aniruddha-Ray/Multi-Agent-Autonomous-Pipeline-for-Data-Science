@@ -1,7 +1,6 @@
 import time
 import uuid
 import sys
-import os
 from pathlib import Path 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,15 +13,17 @@ from src.main import run_end_to_end
 _RUN_STORE: dict[str, dict] = {}
 
 
-import pandas as pd
-
 def execute_pipeline_run(
-    train_df, test_df, dataset_source: str, target_column: str, cfg, deps
+    train_df, test_df, dataset_source: str, target_column: str | None, cfg, deps,
+    problem_type: str | None = None,
 ) -> dict:
     run_id = str(uuid.uuid4())
     start = time.perf_counter()
 
-    final_state = run_end_to_end(train_df, dataset_source, cfg, deps, target_column=target_column)
+    final_state = run_end_to_end(
+        train_df, dataset_source, cfg, deps,
+        target_column=target_column, problem_type=problem_type,
+    )
 
     best_name = final_state["metrics"]["best_model_name"]
     best_pipeline = final_state["models"]["trained_pipelines"][best_name]
@@ -44,6 +45,7 @@ def execute_pipeline_run(
         "report_text": final_state["report"],
         "prediction_path": pred_path,
         "target_column": final_state["target_column"],
+        "problem_type": final_state["metadata"]["problem_type"],
     }
     _RUN_STORE[run_id] = result
     return result

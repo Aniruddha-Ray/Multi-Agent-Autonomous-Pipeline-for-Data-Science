@@ -3,7 +3,6 @@ import pandas as pd
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response
 from fastapi.responses import JSONResponse
 import sys
-import os
 from pathlib import Path 
 
 
@@ -13,6 +12,7 @@ if str(ROOT) not in sys.path:
 from src.api.schemas import HealthResponse, PipelineRunResponse
 from src.api.dependencies import get_deps
 from src.api.services import execute_pipeline_run, get_memory_snapshot, _RUN_STORE
+from src.core.metadata import resolve_problem_type
 
 router = APIRouter()
 
@@ -25,6 +25,7 @@ async def run_pipeline_endpoint(
     train_file: UploadFile = File(...),
     test_file: UploadFile = File(...),
     target_column: str | None = Form(None),
+    problem_type: str | None = Form(None),
 ):
     for f in (train_file, test_file):
         if not f.filename.lower().endswith(".csv"):
@@ -42,10 +43,17 @@ async def run_pipeline_endpoint(
             detail=f"'{target_column}' is not a column in train_file. Available: {list(train_df.columns)}",
         )
 
+    try:
+        resolved_problem_type = resolve_problem_type(problem_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     cfg, deps = get_deps()
+
     try:
         result = execute_pipeline_run(
-            train_df, test_df, train_file.filename, target_column, cfg, deps
+            train_df, test_df, train_file.filename, target_column, cfg, deps,
+            problem_type=resolved_problem_type
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}")

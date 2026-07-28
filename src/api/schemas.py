@@ -12,3 +12,4 @@ class PipelineRunResponse(BaseModel):
     execution_time: float
     prediction_path: str | None = None
     target_column: str
+    problem_type: str

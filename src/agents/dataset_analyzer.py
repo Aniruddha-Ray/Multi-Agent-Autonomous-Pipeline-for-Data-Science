@@ -45,7 +45,7 @@ def dataset_analyzer_node(state: PipelineState) -> PipelineState:
     target_column = state.get("target_column") or _infer_target_column(df)
     validate_dataset_for_training(df, target_column, CFG)
 
-    metadata = compute_dataset_metadata(df, target_column)
+    metadata = compute_dataset_metadata(df, target_column, problem_type=state.get("problem_type"))
     state["target_column"] = metadata["target_column"]
     state["metadata"] = metadata
     state.setdefault("history", []).append({"node": "dataset_analyzer", "status": "ok"})

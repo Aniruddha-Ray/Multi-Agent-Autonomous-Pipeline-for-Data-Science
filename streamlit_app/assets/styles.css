@@ -1,0 +1,12 @@
+body {
+    font-family: "Segoe UI", sans-serif;
+}
+
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.stButton>button {
+    border-radius: 6px;
+}

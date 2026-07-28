@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from src.config.settings import CFG, Config
 from src.core.data_loader import load_train_test
-from src.core.metadata import resolve_target_column
+from src.core.metadata import prompt_problem_type, resolve_target_column
 from src.graph.build import build_pipeline_graph, run_pipeline
 from src.llm.client import LLMClient
 from src.memory.embeddings import get_embedding_provider
@@ -76,7 +76,7 @@ def get_runtime_config() -> Config:
 
 def run_end_to_end(
     df: pd.DataFrame, dataset_source: str, cfg: Config, deps: dict[str, Any],
-    target_column: str | None = None,
+    target_column: str | None = None, problem_type: str | None = None,
 ) -> PipelineState:
     """Execute one full run: build graph -> run_pipeline -> report
     generation. This is the exact sequence main() used to run inline,
@@ -89,7 +89,7 @@ def run_end_to_end(
         structured=deps["structured"],
         semantic=deps["semantic"],
     )
-    final_state = run_pipeline(df, dataset_source, graph, cfg, target_column=target_column)
+    final_state = run_pipeline(df, dataset_source, graph, cfg, target_column=target_column, problem_type=problem_type)
     final_state = report_generation_node(final_state, cfg)
     return final_state
 
@@ -102,7 +102,8 @@ def main() -> None:
     print(f"Running pipeline graph on: {dataset_source}")
     print(f"Dataset shape            : {train_df.shape}\n")
 
-    final_state = run_end_to_end(train_df, dataset_source, cfg, deps, target_column=target_column)
+    problem_type = prompt_problem_type(train_df, target_column)
+    final_state = run_end_to_end(train_df, dataset_source, cfg, deps, target_column=target_column, problem_type=problem_type)
 
     print()
     print_run_trace(final_state, cfg)
