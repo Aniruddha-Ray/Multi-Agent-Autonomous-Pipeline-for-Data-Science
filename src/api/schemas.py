@@ -13,3 +13,4 @@ class PipelineRunResponse(BaseModel):
     prediction_path: str | None = None
     target_column: str
     problem_type: str
+    details: dict | None = None

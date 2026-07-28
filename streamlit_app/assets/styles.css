@@ -1,12 +1,143 @@
-body {
-    font-family: "Segoe UI", sans-serif;
-}
+/* ===== Font ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+/* ===== Layout ===== */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+    background-color: #F7F8FA;
+    color: #1E293B;
+}
 .block-container {
     padding-top: 2rem;
-    padding-bottom: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1200px;
 }
 
+/* ===== Header ===== */
+.app-hero-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.2rem;
+}
+.app-hero-subtitle {
+    font-size: 1.05rem;
+    color: #64748B;
+    margin-bottom: 1.2rem;
+}
+
+/* ===== Sidebar ===== */
+section[data-testid="stSidebar"] {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E5E7EB;
+}
+.sidebar-logo {
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+}
+.sidebar-version {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+/* ===== Cards ===== */
+.card {
+    background-color: #FFFFFF;
+    border-radius: 18px;
+    border: 1px solid #E5E7EB;
+    padding: 20px 24px;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    margin-bottom: 1rem;
+}
+.card:hover {
+    box-shadow: 0 8px 20px rgba(16,24,40,0.08);
+    transform: translateY(-1px);
+}
+.card-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+}
+
+/* ===== Metric Cards ===== */
+.metric-card {
+    background-color: #FFFFFF;
+    border-radius: 18px;
+    border: 1px solid #E5E7EB;
+    padding: 18px 20px;
+    text-align: left;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    border-left: 4px solid var(--accent, #4361EE);
+}
+.metric-card:hover {
+    box-shadow: 0 8px 20px rgba(16,24,40,0.08);
+    transform: translateY(-2px);
+}
+.metric-card-label {
+    font-size: 0.8rem;
+    color: #64748B;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.metric-card-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+/* ===== Buttons ===== */
 .stButton>button {
-    border-radius: 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+.stButton>button:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+}
+
+/* ===== Tables ===== */
+.stDataFrame { border-radius: 12px; overflow: hidden; }
+
+/* ===== Console / Timeline ===== */
+.exec-console {
+    background-color: #1E1E1E;
+    border-radius: 12px;
+    border: 1px solid #30363D;
+}
+.timeline-node { padding: 6px 0; }
+
+/* ===== Badges ===== */
+.tech-badge {
+    display: inline-block;
+    background-color: #EEF2FF;
+    color: #4361EE;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 3px 4px 3px 0;
+}
+
+/* ===== Footer ===== */
+.app-footer {
+    border-top: 1px solid #E5E7EB;
+    padding-top: 14px;
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: #94A3B8;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .block-container { padding-left: 1rem; padding-right: 1rem; }
+    .app-hero-title { font-size: 1.8rem; }
 }

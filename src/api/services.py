@@ -46,6 +46,15 @@ def execute_pipeline_run(
         "prediction_path": pred_path,
         "target_column": final_state["target_column"],
         "problem_type": final_state["metadata"]["problem_type"],
+        "details": {
+            "dataset": {"source": dataset_source, "n_rows": final_state["metadata"]["n_rows"],
+                        "n_cols": final_state["metadata"]["n_cols"]},
+            "planner": final_state.get("planner_decision", {}),
+            "feature_engineering": {k: v for k, v in final_state.get("features", {}).items() if k != "preprocessor"},
+            "training": {"best_model": best_name, "metrics": final_state["metrics"]["best_model_metrics"]},
+            "critic": final_state.get("critic", {}),
+            "memory": final_state.get("memory_update_decision", {}),
+        },
     }
     _RUN_STORE[run_id] = result
     return result

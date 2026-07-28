@@ -8,7 +8,9 @@ if str(ROOT) not in sys.path:
 from streamlit_app.components.header import render_header
 from streamlit_app.components.footer import render_footer
 from streamlit_app.components.sidebar import render_sidebar
+from streamlit_app.utils.style_loader import load_css
 
+load_css()
 render_sidebar()
 render_header()
 st.header("About")

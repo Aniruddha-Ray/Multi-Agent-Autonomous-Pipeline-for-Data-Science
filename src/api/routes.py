@@ -4,6 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response
 from fastapi.responses import JSONResponse
 import sys
 from pathlib import Path 
+import os
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,6 +73,21 @@ def get_report(run_id: str):
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return Response(content=run["report_text"], media_type="text/markdown")
+
+@router.get("/predictions/{run_id}")
+def get_predictions(run_id: str):
+    run = _RUN_STORE.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    pred_path = run.get("prediction_path")
+    if not pred_path or not os.path.isfile(pred_path):
+        raise HTTPException(status_code=404, detail="Prediction file not found")
+    with open(pred_path, "rb") as f:
+        content = f.read()
+    return Response(
+        content=content, media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="prediction_{run_id}.csv"'},
+    )
 
 @router.get("/memory")
 def get_memory(limit: int | None = None):

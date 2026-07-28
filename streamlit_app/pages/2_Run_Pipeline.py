@@ -16,20 +16,28 @@ from streamlit_app.components.metric_cards import render_metric_cards
 from streamlit_app.components.report_download import render_report_download
 from streamlit_app.components.pipeline_progress import run_simulated_pipeline
 from streamlit_app.services.api_client import get_report
-
+from streamlit_app.utils.style_loader import load_css
+from streamlit_app.components.prediction_download import render_prediction_download
+from streamlit_app.services.api_client import get_report, get_predictions
+load_css()
 render_sidebar()
 render_header()
 st.header("Adaptive Pipeline Execution")
 
+st.markdown('<div class="card"><div class="card-title">📁 Dataset</div>', unsafe_allow_html=True)
 train_file = st.file_uploader("Upload train.csv", type=["csv"], key="train_file")
 test_file = st.file_uploader("Upload test.csv", type=["csv"], key="test_file")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="card"><div class="card-title">⚙️ Configuration</div>', unsafe_allow_html=True)
 target_column = st.text_input("Target column (leave blank to auto-detect)", value="", key="target_column")
 problem_type = st.selectbox("Problem type (leave as Auto-detect to infer automatically)",
                              ["Auto-detect", "Classification", "Regression"])
-
 col_a, col_b = st.columns([1, 1])
 run_clicked = col_a.button("Run Pipeline", disabled=not (train_file and test_file))
 retry_clicked = col_b.button("Retry") if st.session_state.get("last_error") else False
+st.markdown('</div>', unsafe_allow_html=True)
+
 
 st.divider()
 status_placeholder = st.empty()
@@ -41,6 +49,8 @@ st.subheader("Metrics")
 metrics_placeholder = st.empty()
 st.subheader("Report")
 report_placeholder = st.empty()
+st.subheader("Predictions")
+prediction_placeholder = st.empty()
 
 
 def _draw_last_known_state():
@@ -62,6 +72,9 @@ def _draw_last_known_state():
     if st.session_state.get("last_report_text"):
         with report_placeholder.container():
             render_report_download(st.session_state["last_report_text"], st.session_state.get("last_run_id"))
+    if st.session_state.get("last_prediction_bytes"):
+        with prediction_placeholder.container():
+            render_prediction_download(st.session_state["last_prediction_bytes"], st.session_state.get("last_run_id"))
 
 
 _draw_last_known_state()
@@ -93,3 +106,11 @@ if run_clicked or retry_clicked:
             else:
                 st.session_state["last_report_text"] = report_text
                 render_report_download(report_text, result["run_id"])
+        with prediction_placeholder.container():
+            try:
+                prediction_bytes = get_predictions(result["run_id"])
+            except Exception as exc:
+                st.error(f"Could not fetch predictions: {exc}")
+            else:
+                st.session_state["last_prediction_bytes"] = prediction_bytes
+                render_prediction_download(prediction_bytes, result["run_id"])

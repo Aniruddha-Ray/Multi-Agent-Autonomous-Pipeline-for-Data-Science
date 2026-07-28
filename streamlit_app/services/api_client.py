@@ -49,3 +49,8 @@ def get_memory(limit: int | None = None) -> list:
     resp = requests.get(API_BASE_URL + ENDPOINTS["get_memory"], params=params, timeout=10)
     resp.raise_for_status()
     return resp.json()
+
+def get_predictions(run_id: str) -> bytes:
+    resp = requests.get(API_BASE_URL + ENDPOINTS["get_predictions"].format(run_id=run_id), timeout=30)
+    resp.raise_for_status()
+    return resp.content

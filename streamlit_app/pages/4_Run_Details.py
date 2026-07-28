@@ -5,17 +5,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from streamlit_app.components.header import render_header
 from streamlit_app.components.sidebar import render_sidebar
+from streamlit_app.components.footer import render_footer
 from streamlit_app.services.api_client import get_run
+from streamlit_app.utils.style_loader import load_css
 
+st.set_page_config(page_title="Run Details", layout="wide")
+load_css()
 render_sidebar()
-render_header()
-st.header("Run Details")
+st.markdown('<div class="app-hero-title">Run Details</div>', unsafe_allow_html=True)
 
 run_id = st.text_input("Run ID")
 if st.button("Fetch") and run_id:
     try:
-        st.json(get_run(run_id))
+        run = get_run(run_id)
     except Exception as exc:
         st.error(f"Could not fetch run: {exc}")
+    else:
+        details = run.get("details", {})
+        sections = [
+            ("📁 Dataset", details.get("dataset", {})),
+            ("🧠 Planner", details.get("planner", {})),
+            ("🛠️ Feature Engineering", details.get("feature_engineering", {})),
+            ("🏋️ Training", details.get("training", {})),
+            ("🧐 Critic", details.get("critic", {})),
+            ("💾 Memory", details.get("memory", {})),
+        ]
+        for title, content in sections:
+            st.markdown(f'<div class="card"><div class="card-title">{title}</div>', unsafe_allow_html=True)
+            st.json(content) if content else st.caption("No data")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+render_footer()
