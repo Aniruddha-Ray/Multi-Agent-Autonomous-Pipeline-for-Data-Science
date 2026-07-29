@@ -22,9 +22,9 @@ def render_sidebar():
             health()
             status_slot.success("Connected")
         except Exception:
-            status_slot.warning("Backend starting... retrying connection...")
+            status_slot.warning("Backend waking from sleep (free tier)... this can take up to a minute...")
             try:
-                wait_for_backend(max_attempts=5, delay_seconds=2.0)
+                wait_for_backend(max_attempts=20, delay_seconds=4.0)
                 status_slot.success("Connected")
             except Exception:
                 status_slot.error("Disconnected")

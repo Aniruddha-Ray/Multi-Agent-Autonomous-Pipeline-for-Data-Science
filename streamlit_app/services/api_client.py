@@ -14,7 +14,7 @@ def health() -> dict:
     return resp.json()
 
 
-def wait_for_backend(max_attempts: int = 10, delay_seconds: float = 2.0):
+def wait_for_backend(max_attempts: int = 20, delay_seconds: float = 4.0):
     """Retries health() with backoff. Returns the health payload on success,
     or raises the last exception after exhausting attempts."""
     last_exc = None
