@@ -246,3 +246,4 @@ postgres_data/
 poetry.lock
 pyproject.toml
 Makefile
+.pre-commit-config.yaml 
